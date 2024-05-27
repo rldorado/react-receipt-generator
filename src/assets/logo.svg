@@ -1,0 +1,12 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+  width="192px"
+  height="192px"
+>
+  <rect fill="#f0f0f0" width="24" height="24" />
+  <path
+    fill="#000"
+    d="M 4 3 C 3.447 3 3 3.447 3 4 L 3 20 C 3 20.553 3.447 21 4 21 L 20 21 C 20.553 21 21 20.553 21 20 L 21 4 C 21 3.447 20.553 3 20 3 L 4 3 z M 5 5 L 19 5 L 19 19 L 5 19 L 5 5 z M 7 7 L 7 9 L 17 9 L 17 7 L 7 7 z M 7 11 L 7 13 L 17 13 L 17 11 L 7 11 z M 7 15 L 7 17 L 17 17 L 17 15 L 7 15 z"
+  />
+</svg>

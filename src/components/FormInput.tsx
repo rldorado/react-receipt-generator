@@ -1,155 +1,228 @@
-import { ChangeEvent } from "react";
-import Receipt from "../models/Receipt";
+import { ChangeEvent, useEffect, useState } from 'react';
+import Receipt from '../models/Receipt';
+import { INITIAL_RECEIPT, formatDate } from '../utils';
+import { useReceipt } from '../context/ReceiptContext';
+import generatePDF from '../plugins/PDFGenerator';
+import { useTranslation } from 'react-i18next';
+import { FaPlus, FaTrash } from 'react-icons/fa';
+import { useConcepts } from '../composables/useConcepts';
+import { useFormValidation } from '../composables/useFormValidation';
 
 interface FormInputProps {
-    receipt: Receipt;
-    setReceipt: (receipt: Receipt) => void;
-    filename: string;
-    setFilename: (filename: string) => void
+  initialReceipt?: Receipt;
+  closeModal: () => void;
 }
 
-const FormInput = ({
-    receipt,
-    setReceipt,
-    filename,
-    setFilename
-}: FormInputProps) => {
+const FormInput: React.FC<FormInputProps> = ({ initialReceipt, closeModal }) => {
+  const { t } = useTranslation();
+  const { addReceipt, updateReceipt } = useReceipt();
+  const [receipt, setReceipt] = useState<Receipt>(initialReceipt || INITIAL_RECEIPT);
+  const { concepts, handleConceptChange, addConcept, deleteConcept } = useConcepts(receipt.concepts);
+  const { errors, validate } = useFormValidation();
+
+  useEffect(() => {
+    setReceipt((prevReceipt) => ({ ...prevReceipt, concepts }));
+  }, [concepts]);
+
+  useEffect(() => {
+    if (initialReceipt) {
+      setReceipt(initialReceipt);
+    }
+  }, [initialReceipt]);
+
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setReceipt({ ...receipt, [name]: value });
   };
 
-  const handleConceptChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const updatedConcepts = receipt.concepts.map((concept, i) =>
-      i === index ? { ...concept, [name]: value } : concept
-    );
-    setReceipt({ ...receipt, concepts: updatedConcepts });
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (validate(receipt)) {
+      if (initialReceipt) {
+        updateReceipt(receipt.id, receipt);
+      } else {
+        addReceipt(receipt);
+      }
+      generatePDF(receipt, receipt.num);
+      resetForm();
+      closeModal();
+    }
   };
 
-  const addConcept = () => {
-    setReceipt({
-        ...receipt,
-        concepts: [
-            ...receipt.concepts,
-            { name: '', amount: 0 }
-        ] 
-    });
+  const resetForm = () => {
+    setReceipt(INITIAL_RECEIPT);
   };
-
-  const deleteConcept = (index: number) => {
-    const updatedConcepts = receipt.concepts.filter((_, i) => i !== index);
-    setReceipt({ ...receipt, concepts: updatedConcepts });
-  };
-
-  const conceptTotal = receipt.concepts.reduce((total, item) => total + Number(item.amount), 0);
 
   return (
     <section>
-      <div>
+      <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label className="block mb-2">Number of receipt</label>
-          <input className="input input-bordered" type="text" id="num" name="num" value={receipt.num} onChange={handleChange} />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-2">Location</label>
-          <input className="input input-bordered" type="text" id="location" name="loc" value={receipt.loc} onChange={handleChange} />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-2">Amount</label>
-          <input className="input input-bordered" type="text" id="amount" value={`${conceptTotal} €`} disabled />
-        </div>
-      </div>
-      <div>
-        <div className="mb-4">
-          <label className="block mb-2">Emission date</label>
-          <input className="input input-bordered" type="date" id="date" name="date" value={receipt.date} onChange={handleChange} />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-2">Expiration date</label>
-          <input className="input input-bordered" type="text" id="exp" name="expiration" value={receipt.expiration} onChange={handleChange} />
-        </div>
-      </div>
-      <div>
-        <label className="block mb-2">Concepts</label>
-        <ul className="list-disc pl-5">
-          {receipt.concepts.map((concept, index) => (
-            <li key={index} className="mb-2 flex items-center">
-              <input
-                className="input input-bordered mr-2"
-                type="text"
-                name="name"
-                placeholder="Concept"
-                value={concept.name}
-                onChange={(e) => handleConceptChange(index, e)}
-              />
-              <input
-                className="input input-bordered mr-2"
-                type="number"
-                name="amount"
-                placeholder="Amount"
-                value={concept.amount}
-                onChange={(e) => handleConceptChange(index, e)}
-              />
-              €
-              <button
-                className="btn btn-error btn-xs ml-2"
-                onClick={() => deleteConcept(index)}
-              >
-                -
-              </button>
-            </li>
-          ))}
-        </ul>
-        <button className="btn btn-secondary mt-2" onClick={addConcept}>+</button>
-      </div>
-      <div className="mb-4">
-        <label className="block mb-2">Address:</label>
-        <input
-          className="input input-bordered"
-          type="text"
-          id="home"
-          name="home"
-          placeholder="Write here ..."
-          value={receipt.home}
-          onChange={handleChange}
-        />
-      </div>
-      <div>
-        <div className="mb-4">
-          <label className="block mb-2">Payer</label>
-          <textarea
-            className="textarea textarea-bordered"
-            rows={5}
-            id="payer"
-            name="payer"
-            value={receipt.payer}
-            onChange={handleChange}
+          <label className="block mb-2 font-bold">{t('total')}</label>
+          <input
+            className="input input-bordered font-semibold"
+            type="text"
+            id="amount"
+            value={`${concepts.reduce((total, item) => total + Number(item.amount), 0)} €`}
+            disabled
           />
         </div>
+        <div className="mb-4 w-full md:grid md:grid-cols-2 md:gap-2">
+          <div>
+            <label className="block mb-2 mt-2 md:mt-0">{t('numberOfReceipt')}</label>
+            <input
+              className="input input-bordered w-full"
+              type="text"
+              id="num"
+              name="num"
+              value={receipt.num}
+              onChange={handleChange}
+            />
+            {errors.num && <span className="text-red-500 text-sm">{errors.num}</span>}
+          </div>
+          <div>
+            <label className="block mb-2 mt-2 md:mt-0">{t('location')}</label>
+            <input
+              className="input input-bordered w-full"
+              type="text"
+              id="location"
+              name="loc"
+              value={receipt.loc}
+              onChange={handleChange}
+            />
+            {errors.loc && <span className="text-red-500 text-sm">{errors.loc}</span>}
+          </div>
+        </div>
+        <div className="w-full md:grid md:grid-cols-2 md:gap-2">
+          <div className="mb-4">
+            <label className="block mb-2">{t('emissionDate')}</label>
+            <input
+              className="input input-bordered w-full"
+              type="date"
+              id="date"
+              name="date"
+              value={formatDate(receipt.date)}
+              onChange={handleChange}
+            />
+            {errors.date && <span className="text-red-500 text-sm">{errors.date}</span>}
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2">{t('expirationDate')}</label>
+            <input
+              className="input input-bordered w-full"
+              type="date"
+              id="exp"
+              name="expiration"
+              value={formatDate(receipt.expiration)}
+              onChange={handleChange}
+            />
+            {errors.expiration && <span className="text-red-500 text-sm">{errors.expiration}</span>}
+          </div>
+        </div>
+        <div>
+          <label className="block mb-2">{t('concepts')}</label>
+          <ul className="list-disc">
+            {receipt.concepts.map((concept, index) => (
+              <li key={index} className="mb-2 flex flex-col md:flex-row md:items-center md:gap-2">
+                <input
+                  className="input input-bordered w-full md:w-auto flex-grow"
+                  type="text"
+                  name="name"
+                  placeholder={t('concept')}
+                  value={concept.name}
+                  onChange={(e) => handleConceptChange(index, e)}
+                />
+                <input
+                  className="input input-bordered w-full md:w-auto flex-grow"
+                  type="number"
+                  name="amount"
+                  placeholder="0.00"
+                  value={concept.amount}
+                  onChange={(e) => handleConceptChange(index, e)}
+                />
+                €
+                <button className="btn btn-error btn-xs" onClick={() => deleteConcept(index)}>
+                  <FaTrash />
+                </button>
+              </li>
+            ))}
+          </ul>
+          {errors.concepts && <span className="text-red-500 text-sm block">{errors.concepts}</span>}
+          <button className="btn btn-primary my-2 flex items-center" onClick={addConcept}>
+            <FaPlus className="mr-2" /> {t('addConcept')}
+          </button>
+        </div>
         <div className="mb-4">
-          <label className="block mb-2">Collector</label>
-          <textarea
-            className="textarea textarea-bordered"
-            rows={5}
-            id="collector"
-            name="collector"
-            value={receipt.collector}
+          <label className="block mb-2">{t('homeAddress')}</label>
+          <input
+            className="input input-bordered w-full"
+            type="text"
+            id="home"
+            name="home"
+            placeholder={t('writeHere')}
+            value={receipt.home}
             onChange={handleChange}
           />
+          {errors.home && <span className="text-red-500 text-sm">{errors.home}</span>}
         </div>
-      </div>
-      <div className="mb-4">
-        <label className="block mb-2">Filename</label>
-        <input
-          className="input input-bordered"
-          type="text"
-          id="filename"
-          placeholder="Write here ..."
-          value={filename}
-          onChange={(e) => setFilename(e.target.value)}
-        />
-      </div>
+        <div className="md:grid md:grid-cols-2 md:gap-2">
+          <div className="mb-4">
+            <label className="block mb-2">{t('payerName')}</label>
+            <input
+              className="input input-bordered w-full"
+              type="text"
+              id="payerName"
+              name="payer.name"
+              placeholder={t('payerName')}
+              value={receipt.payer.name}
+              onChange={(e) => setReceipt({ ...receipt, payer: { ...receipt.payer, name: e.target.value } })}
+            />
+            {errors.payerName && <span className="text-red-500 text-sm">{errors.payerName}</span>}
+            <label className="block my-2">{t('payerAddress')}</label>
+            <input
+              className="input input-bordered w-full"
+              type="text"
+              id="payerAddress"
+              name="payer.address"
+              placeholder={t('payerAddress')}
+              value={receipt.payer.address}
+              onChange={(e) => setReceipt({ ...receipt, payer: { ...receipt.payer, address: e.target.value } })}
+            />
+            {errors.payerAddress && <span className="text-red-500 text-sm">{errors.payerAddress}</span>}
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2">Collector Name</label>
+            <input
+              className="input input-bordered w-full"
+              type="text"
+              id="collectorName"
+              name="collector.name"
+              placeholder={t('collectorName')}
+              value={receipt.collector.name}
+              onChange={(e) => setReceipt({ ...receipt, collector: { ...receipt.collector, name: e.target.value } })}
+            />
+            {errors.collectorName && <span className="text-red-500 text-sm">{errors.collectorName}</span>}
+            <label className="block my-2">{t('collectorAddress')}</label>
+            <input
+              className="input input-bordered w-full"
+              type="text"
+              id="collectorAddress"
+              name="collector.address"
+              placeholder={t('collectorAddress')}
+              value={receipt.collector.address}
+              onChange={(e) => setReceipt({ ...receipt, collector: { ...receipt.collector, address: e.target.value } })}
+            />
+            {errors.collectorAddress && <span className="text-red-500 text-sm">{errors.collectorAddress}</span>}
+          </div>
+        </div>
+        <div className="mt-4 flex justify-between">
+          <button className="btn btn-error" onClick={resetForm} type="button">
+            {t('reset')}
+          </button>
+          <button className="btn btn-primary" type="submit">
+            {t('submit')}
+          </button>
+        </div>
+      </form>
     </section>
   );
 };
