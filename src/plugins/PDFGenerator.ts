@@ -1,101 +1,90 @@
 import Receipt from '../models/Receipt';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { formatDate } from '../utils';
 
-const DEFAULT_PDF_STYLES = {
-  TEXT_SIZE: 12,
-  LINE_HEIGHT: 12,
-  MARGIN_X: 40,
-  MARGIN_Y: 40,
-  BOX_PADDING: 10,
-};
-
 const generatePDF = (receipt: Receipt, filename: string) => {
-  const doc = new jsPDF({
-    orientation: 'landscape',
-    unit: 'pt',
-  });
+  const doc = new jsPDF();
 
-  const { TEXT_SIZE, LINE_HEIGHT, MARGIN_X, MARGIN_Y, BOX_PADDING } = DEFAULT_PDF_STYLES;
+  const { num, loc, date, expiration, home, concepts, payer, collector } = receipt;
 
-  doc.setFontSize(TEXT_SIZE);
-
-  // Background
-  doc.setFillColor(173, 216, 230);
-  doc.rect(0, 0, doc.internal.pageSize.width, doc.internal.pageSize.height, 'F');
+  // Styles
+  const TITLE_STYLE = { FONT_SIZE: 12, FONT_STYLE: 'bold' };
+  const TEXT_STYLE = { FONT_SIZE: 10 };
 
   // Header
-  doc.setFillColor(255, 255, 255);
-  doc.rect(MARGIN_X, MARGIN_Y, 500, 60, 'F');
+  doc.setFontSize(16);
+  doc.text('Recibo', 105, 10, { align: 'center' });
 
-  doc.text('Numero', MARGIN_X + BOX_PADDING, MARGIN_Y + BOX_PADDING + LINE_HEIGHT);
-  doc.text(`${receipt.num}`, MARGIN_X + BOX_PADDING, MARGIN_Y + BOX_PADDING + LINE_HEIGHT * 2);
+  doc.setFontSize(TITLE_STYLE.FONT_SIZE);
+  doc.setFont('Helvetica', TITLE_STYLE.FONT_STYLE);
+  doc.text('Numero', 10, 30);
+  doc.text(`Localidad`, 70, 30);
+  doc.text(`Importe`, 140, 30);
 
-  doc.text('Localidad', MARGIN_X + 200 + BOX_PADDING, MARGIN_Y + BOX_PADDING + LINE_HEIGHT);
-  doc.text(`${receipt.loc}`, MARGIN_X + 200 + BOX_PADDING, MARGIN_Y + BOX_PADDING + LINE_HEIGHT * 2);
+  doc.setFontSize(TEXT_STYLE.FONT_SIZE);
+  doc.setFont('Helvetica', 'normal');
+  doc.text(num || '', 10, 35);
+  doc.text(loc || '', 70, 35);
+  doc.text(`${concepts.reduce((total, item) => total + Number(item.amount), 0)} €`, 140, 35);
 
-  doc.text('Importe', MARGIN_X + 400 + BOX_PADDING, MARGIN_Y + BOX_PADDING + LINE_HEIGHT);
-  doc.text(`${receipt.amount} €`, MARGIN_X + 400 + BOX_PADDING, MARGIN_Y + BOX_PADDING + LINE_HEIGHT * 2);
+  doc.setFontSize(TITLE_STYLE.FONT_SIZE);
+  doc.setFont('Helvetica', TITLE_STYLE.FONT_STYLE);
+  doc.text(`Fecha de emisión`, 10, 45);
+  doc.text(`Vencimiento`, 70, 45);
 
-  // Date
-  doc.setFillColor(255, 255, 255);
-  doc.rect(MARGIN_X, MARGIN_Y + 80, 500, 40, 'F');
+  doc.setFontSize(TEXT_STYLE.FONT_SIZE);
+  doc.setFont('Helvetica', 'normal');
+  doc.text(formatDate(date), 10, 50);
+  doc.text(typeof expiration === 'string' ? expiration : formatDate(expiration), 70, 50);
 
-  doc.text('Fecha de emisión', MARGIN_X + BOX_PADDING, MARGIN_Y + BOX_PADDING + 80 + LINE_HEIGHT);
-  doc.text(`${formatDate(receipt.date)}`, MARGIN_X + BOX_PADDING, MARGIN_Y + BOX_PADDING + 80 + LINE_HEIGHT * 2);
-
-  // Expiration
-  doc.text('Vencimiento', MARGIN_X + 200 + BOX_PADDING, MARGIN_Y + BOX_PADDING + 80 + LINE_HEIGHT);
-  doc.text(
-    `${formatDate(receipt.expiration)}`,
-    MARGIN_X + 200 + BOX_PADDING,
-    MARGIN_Y + BOX_PADDING + 80 + LINE_HEIGHT * 2
-  );
-
-  // Concepts
-  doc.setFillColor(255, 255, 255);
-  doc.rect(MARGIN_X, MARGIN_Y + 140, 500, 200, 'F');
-
-  let currentMarginY = MARGIN_Y + 140 + BOX_PADDING + LINE_HEIGHT;
-  receipt.concepts.forEach((concept) => {
-    doc.text(concept.name, MARGIN_X + BOX_PADDING, currentMarginY);
-    doc.text(`${concept.amount} €`, MARGIN_X + 200 + BOX_PADDING, currentMarginY);
-    currentMarginY += 12 + BOX_PADDING;
+  // Concepts table
+  autoTable(doc, {
+    startY: 60,
+    head: [['Concepto', 'Importe']],
+    body: concepts.map((concept) => [concept.name, `${concept.amount} €`]),
+    theme: 'striped',
+    styles: { fontSize: TEXT_STYLE.FONT_SIZE },
+    headStyles: { fillColor: [22, 160, 133], textColor: [255, 255, 255] },
+    alternateRowStyles: { fillColor: [240, 240, 240] },
   });
 
-  // Address
-  doc.setFillColor(255, 255, 255);
-  doc.rect(MARGIN_X, currentMarginY + 20, 500, 40, 'F');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tableEndY = (doc as any).autoTable.previous.finalY;
 
-  doc.text('Domicilio', MARGIN_X + BOX_PADDING, currentMarginY + 20 + BOX_PADDING + LINE_HEIGHT);
-  doc.text(`${receipt.home}`, MARGIN_X + BOX_PADDING, currentMarginY + 20 + BOX_PADDING + LINE_HEIGHT * 2);
+  // Home address
+  doc.setFontSize(TITLE_STYLE.FONT_SIZE);
+  doc.setFont('Helvetica', TITLE_STYLE.FONT_STYLE);
+  doc.text(`Domicilio`, 10, tableEndY + 10);
 
-  // Payer
-  currentMarginY += 80;
-  doc.setFillColor(255, 255, 255);
-  doc.rect(MARGIN_X, currentMarginY, 500, 60, 'F');
+  doc.setFontSize(TEXT_STYLE.FONT_SIZE);
+  doc.setFont('Helvetica', TITLE_STYLE.FONT_STYLE);
+  doc.text(home, 10, tableEndY + 15);
 
-  doc.text('Pagador', MARGIN_X + BOX_PADDING, currentMarginY + BOX_PADDING + LINE_HEIGHT);
-  doc.text(`Nombre: ${receipt.payer.name}`, MARGIN_X + BOX_PADDING, currentMarginY + BOX_PADDING + LINE_HEIGHT * 2);
-  doc.text(
-    `Dirección: ${receipt.payer.address}`,
-    MARGIN_X + BOX_PADDING,
-    currentMarginY + BOX_PADDING + LINE_HEIGHT * 3
-  );
+  // Payer information
+  doc.setFontSize(TITLE_STYLE.FONT_SIZE);
+  doc.setFont('Helvetica', TITLE_STYLE.FONT_STYLE);
+  doc.text(`Pagador`, 10, tableEndY + 25);
 
-  // Collector
-  currentMarginY += 80;
-  doc.setFillColor(255, 255, 255);
-  doc.rect(MARGIN_X, currentMarginY, 500, 60, 'F');
+  doc.setFontSize(TEXT_STYLE.FONT_SIZE);
+  doc.setFont('Helvetica', TITLE_STYLE.FONT_STYLE);
+  doc.text(`Nombre: ${payer.name}`, 20, tableEndY + 30);
+  doc.text(`Dirección: ${payer.address}`, 20, tableEndY + 35);
 
-  doc.text('Cobrador', MARGIN_X + BOX_PADDING, currentMarginY + BOX_PADDING + LINE_HEIGHT);
-  doc.text(`Nombre: ${receipt.collector.name}`, MARGIN_X + BOX_PADDING, currentMarginY + BOX_PADDING + LINE_HEIGHT * 2);
-  doc.text(
-    `Dirección: ${receipt.collector.address}`,
-    MARGIN_X + BOX_PADDING,
-    currentMarginY + BOX_PADDING + LINE_HEIGHT * 3
-  );
+  // Collector information
+  doc.setFontSize(TITLE_STYLE.FONT_SIZE);
+  doc.setFont('Helvetica', TITLE_STYLE.FONT_STYLE);
+  doc.text(`Cobrador`, 10, tableEndY + 45);
 
+  doc.setFontSize(TEXT_STYLE.FONT_SIZE);
+  doc.setFont('Helvetica', TITLE_STYLE.FONT_STYLE);
+  doc.text(`Nombre: ${collector.name}`, 20, tableEndY + 50);
+  doc.text(`Dirección: ${collector.address}`, 20, tableEndY + 55);
+
+  // Leave space for signature
+  doc.text('_____________________________', 20, tableEndY + 65);
+
+  // Save PDF
   doc.save(`${filename}.pdf`);
 };
 

@@ -9,7 +9,7 @@
   "emissionDate": "Fecha de Emisión",
   "expirationDate": "Fecha de Vencimiento",
   "concepts": "Conceptos",
-  "homeAddress": "Dirección de la Vivienda",
+  "homeAddress": "Dirección del Hogar",
   "payerName": "Nombre del Pagador",
   "payerAddress": "Dirección del Pagador",
   "collectorName": "Nombre del Recaudador",
@@ -20,5 +20,6 @@
   "writeHere": "Escriba aquí ...",
   "addConcept": "Añadir Concepto",
   "required": "Este campo es obligatorio",
-  "conceptsRequired": "Todos los conceptos deben tener un nombre y un monto"
+  "conceptsRequired": "Todos los conceptos deben tener un nombre y un monto",
+  "atSight": "A la vista"
 }

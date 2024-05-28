@@ -17,6 +17,7 @@ const FormInput: React.FC<FormInputProps> = ({ initialReceipt, closeModal }) => 
   const { t } = useTranslation();
   const { addReceipt, updateReceipt } = useReceipt();
   const [receipt, setReceipt] = useState<Receipt>(initialReceipt || INITIAL_RECEIPT);
+  const [isDueAtSight, setIsDueAtSight] = useState<boolean>(false);
   const { concepts, handleConceptChange, addConcept, deleteConcept } = useConcepts(receipt.concepts);
   const { errors, validate } = useFormValidation();
 
@@ -27,8 +28,9 @@ const FormInput: React.FC<FormInputProps> = ({ initialReceipt, closeModal }) => 
   useEffect(() => {
     if (initialReceipt) {
       setReceipt(initialReceipt);
+      setIsDueAtSight(typeof initialReceipt.expiration === 'string' && initialReceipt.expiration === t('atSight'));
     }
-  }, [initialReceipt]);
+  }, [initialReceipt, t]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -51,6 +53,15 @@ const FormInput: React.FC<FormInputProps> = ({ initialReceipt, closeModal }) => 
 
   const resetForm = () => {
     setReceipt(INITIAL_RECEIPT);
+  };
+
+  const handleDueAtSighChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setIsDueAtSight(e.target.checked);
+    if (e.target.checked) {
+      setReceipt({ ...receipt, expiration: t('dueAtSight') });
+    } else {
+      setReceipt({ ...receipt, expiration: formatDate(new Date()) });
+    }
   };
 
   return (
@@ -112,9 +123,19 @@ const FormInput: React.FC<FormInputProps> = ({ initialReceipt, closeModal }) => 
               type="date"
               id="exp"
               name="expiration"
-              value={formatDate(receipt.expiration)}
+              value={typeof receipt.expiration === 'string' ? '' : receipt.expiration.toISOString().split('T')[0]}
               onChange={handleChange}
+              disabled={isDueAtSight}
             />
+            <label className="ml-2 flex items-center">
+              <input
+                type="checkbox"
+                className="form-checkbox"
+                checked={isDueAtSight}
+                onChange={handleDueAtSighChange}
+              />
+              <span className="ml-2 italic">{t('atSight')}</span>
+            </label>
             {errors.expiration && <span className="text-red-500 text-sm">{errors.expiration}</span>}
           </div>
         </div>

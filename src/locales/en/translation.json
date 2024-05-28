@@ -20,5 +20,6 @@
   "writeHere": "Write here ...",
   "addConcept": "Add Concept",
   "required": "This field is required",
-  "conceptsRequired": "All concepts must have a name and an amount"
+  "conceptsRequired": "All concepts must have a name and an amount",
+  "atSight": "At Sight"
 }

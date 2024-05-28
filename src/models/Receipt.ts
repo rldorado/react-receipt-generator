@@ -9,7 +9,7 @@ interface Receipt {
   loc: string;
   amount: number;
   date: Date;
-  expiration: Date;
+  expiration: Date | string;
   home: string;
   concepts: Concept[];
   payer: {
