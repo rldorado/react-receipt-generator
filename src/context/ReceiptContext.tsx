@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import Receipt from '../models/Receipt';
 
 interface ReceiptContextType {
@@ -23,7 +23,14 @@ interface ReceiptProviderProps {
 }
 
 export const ReceiptProvider: React.FC<ReceiptProviderProps> = ({ children }) => {
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [receipts, setReceipts] = useState<Receipt[]>(() => {
+    const storedReceipts = localStorage.getItem('receipts');
+    return storedReceipts ? JSON.parse(storedReceipts) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('receipts', JSON.stringify(receipts));
+  }, [receipts]);
 
   const addReceipt = (receipt: Receipt) => {
     setReceipts((prevReceipts) => [...prevReceipts, receipt]);

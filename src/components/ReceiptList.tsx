@@ -49,7 +49,8 @@ const ReceiptList: React.FC = () => {
                 {t('emissionDate')}: {formatDate(receipt.date)}
               </p>
               <p>
-                {t('expirationDate')}: {formatDate(receipt.expiration)}
+                {t('expirationDate')}:{' '}
+                {typeof receipt.expiration === 'string' ? t('atSight') : formatDate(receipt.expiration)}
               </p>
             </div>
             <div className="flex space-x-2 mt-2 md:mt-0">

@@ -58,7 +58,7 @@ const FormInput: React.FC<FormInputProps> = ({ initialReceipt, closeModal }) => 
   const handleDueAtSighChange = (e: ChangeEvent<HTMLInputElement>) => {
     setIsDueAtSight(e.target.checked);
     if (e.target.checked) {
-      setReceipt({ ...receipt, expiration: t('dueAtSight') });
+      setReceipt({ ...receipt, expiration: t('atSight') });
     } else {
       setReceipt({ ...receipt, expiration: formatDate(new Date()) });
     }
@@ -168,7 +168,7 @@ const FormInput: React.FC<FormInputProps> = ({ initialReceipt, closeModal }) => 
             ))}
           </ul>
           {errors.concepts && <span className="text-red-500 text-sm block">{errors.concepts}</span>}
-          <button className="btn btn-primary my-2 flex items-center" onClick={addConcept}>
+          <button className="btn btn-primary my-2 flex items-center" type="button" onClick={addConcept}>
             <FaPlus className="mr-2" /> {t('addConcept')}
           </button>
         </div>

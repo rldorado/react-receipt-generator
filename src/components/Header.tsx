@@ -6,7 +6,7 @@ const Header: React.FC = () => {
   const changeLanguage = (lang: string) => {
     i18n.changeLanguage(lang);
     localStorage.setItem('lang', lang);
-  }
+  };
 
   return (
     <header className="bg-gray-800 text-white p-4 flex justify-between items-center">
