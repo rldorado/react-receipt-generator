@@ -5,8 +5,8 @@ import { useReceipt } from '../context/ReceiptContext';
 import generatePDF from '../plugins/PDFGenerator';
 import { useTranslation } from 'react-i18next';
 import { FaPlus, FaTrash } from 'react-icons/fa';
-import { useConcepts } from '../composables/useConcepts';
-import { useFormValidation } from '../composables/useFormValidation';
+import { useConcepts } from '../hooks/useConcepts';
+import { useFormValidation } from '../hooks/useFormValidation';
 
 interface FormInputProps {
   initialReceipt?: Receipt;
